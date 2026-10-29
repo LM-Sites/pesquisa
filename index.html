@@ -102,6 +102,11 @@ button.send:disabled { opacity: .5; cursor: not-allowed; }
 .tally .track { grid-column: 1 / -1; height: 10px; background: var(--accent-soft); border-radius: 2px; overflow: hidden; }
 .tally .bar { height: 100%; width: 0; background: var(--accent); transition: width .5s ease; }
 .tally li.top .bar { background: var(--hot); }
+/* Cartaz do Instagram no fim da página */
+.promo { display: flex; justify-content: center; }
+.promo a { display: block; width: 100%; max-width: 480px; border-radius: 6px; overflow: hidden; }
+.promo a:focus-visible { outline: 3px solid var(--hot); outline-offset: 3px; }
+.promo img { display: block; width: 100%; height: auto; }
 @media (prefers-reduced-motion: reduce) { .opt, .tally .bar { transition: none; } }
 </style>
 </head>
@@ -151,6 +156,13 @@ button.send:disabled { opacity: .5; cursor: not-allowed; }
     <section class="group"><div class="group-head"><h2>Refri</h2></div><ul class="tally" data-key="refri"></ul></section>
     <section class="group"><div class="group-head"><h2>Suco Del Valle</h2></div><ul class="tally" data-key="suco"></ul></section>
   </section>
+
+  <footer class="promo">
+    <a href="https://www.instagram.com/cmpastelaria/" target="_blank" rel="noopener">
+      <img src="img/cm-pastelaria-instagram.webp" width="1024" height="1536" loading="lazy"
+        alt="CM Pastelaria: aponte a câmera para o QR code e siga @cmpastelaria no Instagram">
+    </a>
+  </footer>
 </div>
 
 <script>
