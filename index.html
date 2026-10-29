@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pesquisa do Pastel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: uma comanda de pastelaria — três blocos (pastel, refri, suco) em coluna, cada opção é um chip; no fim, o email e o envio. Depois do voto, a comanda vira o placar.
+   Cor: lona azul de barraca de feira + vermelho de ketchup, sobre branco frio. */
+:root {
+  --bg: #e9eef5;
+  --paper: #ffffff;
+  --ink: #0f1d33;
+  --muted: #54627a;
+  --line: #cfd8e5;
+  --accent: #1747c9;
+  --accent-soft: #dfe7fb;
+  --on-accent: #ffffff;
+  --hot: #d7262b;
+  --ok: #1d7a43;
+  --err: #c11f24;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #0b1426; --paper: #121e36; --ink: #e8eefa; --muted: #93a2bd; --line: #24324f;
+  --accent: #5b8bff; --accent-soft: #1b2c52; --on-accent: #07122a; --hot: #ff5a5f; --ok: #5fcf8c; --err: #ff7b7f;
+  color-scheme: dark;
+} }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5;
+  padding: 32px max(16px, env(safe-area-inset-right, 0px)) 64px max(16px, env(safe-area-inset-left, 0px));
+}
+.wrap { max-width: 720px; margin: 0 auto; display: grid; gap: 28px; }
+header { display: grid; gap: 8px; }
+.eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(34px, 7vw, 52px); line-height: 1.02; margin: 0; text-wrap: balance; }
+h1 em { font-style: normal; color: var(--hot); }
+.lede { margin: 0; color: var(--muted); max-width: 60ch; }
+
+.slip { background: var(--paper); border: 1px solid var(--line); border-top: 6px solid var(--accent); border-radius: 4px; overflow: hidden; }
+.group { padding: 20px 20px 22px; display: grid; gap: 14px; }
+.group + .group { border-top: 2px dashed var(--line); }
+.group-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h2 { font-family: var(--display); font-weight: 600; font-size: 24px; margin: 0; }
+.hint { font-size: 13px; color: var(--muted); }
+
+.opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.opt {
+  display: grid; grid-template-columns: 22px 1fr; align-items: center; gap: 10px;
+  padding: 11px 12px; border: 1.5px solid var(--line); border-radius: 4px; background: var(--paper);
+  color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+  transition: border-color .15s, background-color .15s, color .15s;
+}
+.opt:hover { border-color: var(--accent); background: var(--accent-soft); }
+.opt:focus-visible { outline: 3px solid var(--hot); outline-offset: 2px; }
+.box { width: 22px; height: 22px; border-radius: 3px; border: 1.5px solid var(--muted); display: grid; place-items: center; background: var(--paper); color: var(--accent); }
+.box svg { width: 14px; height: 14px; opacity: 0; }
+.opt[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+.opt[aria-pressed="true"] .box { background: var(--on-accent); border-color: var(--on-accent); }
+.opt[aria-pressed="true"] .box svg { opacity: 1; }
+.opt .label { font-weight: 500; min-width: 0; }
+
+.field { display: grid; gap: 6px; max-width: 420px; }
+.field label { font-weight: 600; }
+.field input {
+  font: inherit; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 4px;
+  background: var(--paper); color: var(--ink);
+}
+.field input:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.field input[aria-invalid="true"] { border-color: var(--err); }
+.field small { color: var(--muted); font-size: 13px; }
+
+.actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 20px; }
+button.send {
+  font: 600 16px var(--body); padding: 13px 22px; border-radius: 4px; border: 0;
+  background: var(--hot); color: var(--paper); cursor: pointer;
+}
+button.send:hover { filter: brightness(1.08); }
+button.send:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+button.send:disabled { opacity: .5; cursor: not-allowed; }
+.msg { font-size: 14px; color: var(--muted); }
+.msg.ok { color: var(--ok); }
+.msg.err { color: var(--err); }
+
+/* Placar depois do voto */
+.thanks { padding: 20px; display: grid; gap: 4px; background: var(--accent); color: var(--on-accent); }
+.thanks strong { font-family: var(--display); font-size: 26px; font-weight: 800; line-height: 1.1; }
+.thanks span { opacity: .9; font-variant-numeric: tabular-nums; }
+.tally { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.tally li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: baseline; }
+.tally .name { font-weight: 500; min-width: 0; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.tally .mine { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; color: var(--hot); }
+.tally .num { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 15px; }
+.tally .num small { color: var(--muted); font-weight: 500; font-size: 13px; margin-left: 4px; }
+.tally .track { grid-column: 1 / -1; height: 10px; background: var(--accent-soft); border-radius: 2px; overflow: hidden; }
+.tally .bar { height: 100%; width: 0; background: var(--accent); transition: width .5s ease; }
+.tally li.top .bar { background: var(--hot); }
+@media (prefers-reduced-motion: reduce) { .opt, .tally .bar { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Pesquisa · Pastelaria</span>
+    <h1>Qual é o seu <em>pastel</em>?</h1>
+    <p class="lede" id="lede">Marque os sabores de pastel, refrigerante e suco Del Valle que você quer. Escolha até 2 pastéis, 1 refri e 1 suco. No final, coloque seu email: cada email vota uma vez só. Depois de votar, você vê quantos votos cada opção recebeu.</p>
+  </header>
+
+  <div id="vote">
+    <form class="slip" id="form" novalidate>
+      <section class="group" data-key="pastel">
+        <div class="group-head"><h2>Pastel</h2><span class="hint" id="hint-pastel">escolha até 2</span></div>
+        <div class="opts"></div>
+      </section>
+      <section class="group" data-key="refri">
+        <div class="group-head"><h2>Refri</h2><span class="hint">escolha 1</span></div>
+        <div class="opts"></div>
+      </section>
+      <section class="group" data-key="suco">
+        <div class="group-head"><h2>Suco Del Valle</h2><span class="hint">escolha 1</span></div>
+        <div class="opts"></div>
+      </section>
+      <section class="group">
+        <div class="field">
+          <label for="email">Seu email</label>
+          <input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="nome@exemplo.com" required>
+          <small>Usado só para garantir um voto por pessoa. Os emails não aparecem para os outros participantes.</small>
+        </div>
+      </section>
+    </form>
+
+    <div class="actions">
+      <button class="send" id="send" type="button">Enviar meu voto</button>
+      <span class="msg" id="msg" aria-live="polite"></span>
+    </div>
+  </div>
+
+  <section class="slip" id="results" hidden aria-live="polite">
+    <div class="thanks">
+      <strong>Voto registrado. Obrigado!</strong>
+      <span id="total">Carregando a contagem…</span>
+    </div>
+    <section class="group"><div class="group-head"><h2>Pastel</h2></div><ul class="tally" data-key="pastel"></ul></section>
+    <section class="group"><div class="group-head"><h2>Refri</h2></div><ul class="tally" data-key="refri"></ul></section>
+    <section class="group"><div class="group-head"><h2>Suco Del Valle</h2></div><ul class="tally" data-key="suco"></ul></section>
+  </section>
+</div>
+
+<script>
+// Chave publicável: feita para ficar no navegador. Nunca coloque aqui a chave secreta (sb_secret_...).
+const SUPABASE_URL = "https://fjvcaprwiypwzlnwbdtb.supabase.co";
+const SUPABASE_KEY = "sb_publishable_sxfHz3P4roI29HSVJfQEEw_4P_74dDb";
+
+const MENU = {
+  pastel: ["Carne", "Queijo", "Pizza", "Frango com catupiry", "Calabresa com queijo", "Bauru", "Palmito", "Chocolate"],
+  refri: ["Coca-Cola", "Guaraná", "Fanta Laranja", "Sprite"],
+  suco: ["Goiaba", "Laranja", "Uva", "Manga"],
+};
+const KEYS = Object.keys(MENU);
+const LIMIT = { pastel: 2, refri: 1, suco: 1 };
+const CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"/></svg>';
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const STORE = "pesquisa-pastel-voto";
+const ERRORS = {
+  email_ja_votou: "Este email já votou. Cada email pode votar uma vez só.",
+  email_invalido: "Digite um email válido, como nome@exemplo.com.",
+  limite_pastel: "Escolha no máximo 2 pastéis.",
+  opcao_invalida: "Uma das opções não é válida. Recarregue a página e tente de novo.",
+  voto_vazio: "Marque pelo menos uma opção antes de enviar.",
+};
+
+const picks = { pastel: new Set(), refri: new Set(), suco: new Set() };
+let tallies = { pastel: {}, refri: {}, suco: {} };
+let respondents = 0, loaded = false, locked = false, poll = null;
+
+const $ = (s) => document.querySelector(s);
+const msg = (text, cls = "") => { const m = $("#msg"); m.textContent = text; m.className = "msg " + cls; };
+
+async function rpc(name, args) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+    method: "POST",
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify(args || {}),
+  });
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!res.ok) { const err = new Error((data && data.message) || res.statusText); err.status = res.status; throw err; }
+  return data;
+}
+
+// Monta os chips
+for (const [key, items] of Object.entries(MENU)) {
+  const box = document.querySelector(`.group[data-key="${key}"] .opts`);
+  items.forEach((name, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "opt"; b.id = `opt-${key}-${i}`;
+    b.dataset.key = key; b.dataset.name = name;
+    b.setAttribute("aria-pressed", "false");
+    b.innerHTML = `<span class="box">${CHECK}</span><span class="label"></span>`;
+    b.querySelector(".label").textContent = name;
+    b.addEventListener("click", () => {
+      if (locked) return;
+      const set = picks[key];
+      if (set.has(name)) set.delete(name);
+      else if (LIMIT[key] === 1) { set.clear(); set.add(name); }
+      else if (set.size >= LIMIT[key]) {
+        msg(`Você já escolheu ${LIMIT[key]} pastéis. Desmarque um para trocar.`, "err");
+        return;
+      } else set.add(name);
+      msg("");
+      renderChips();
+    });
+    box.appendChild(b);
+  });
+}
+
+function renderChips() {
+  document.querySelectorAll(".opt").forEach((b) => {
+    b.setAttribute("aria-pressed", picks[b.dataset.key].has(b.dataset.name) ? "true" : "false");
+  });
+  const left = LIMIT.pastel - picks.pastel.size;
+  $("#hint-pastel").textContent = left === LIMIT.pastel ? "escolha até 2" : left ? "pode escolher mais 1" : "2 escolhidos";
+}
+
+function renderResults() {
+  $("#total").textContent = !loaded ? "Carregando a contagem…"
+    : `${respondents} ${respondents === 1 ? "pessoa votou" : "pessoas votaram"} até agora. A contagem atualiza sozinha.`;
+  for (const key of KEYS) {
+    const ul = document.querySelector(`.tally[data-key="${key}"]`);
+    const rows = MENU[key].map((name) => ({ name, n: tallies[key][name] || 0 })).sort((a, b) => b.n - a.n);
+    const max = rows[0].n;
+    ul.replaceChildren(...rows.map(({ name, n }) => {
+      const li = document.createElement("li");
+      if (n && n === max) li.className = "top";
+      const nm = document.createElement("span"); nm.className = "name"; nm.textContent = name;
+      if (picks[key].has(name)) { const tag = document.createElement("span"); tag.className = "mine"; tag.textContent = "seu voto"; nm.appendChild(tag); }
+      const num = document.createElement("span"); num.className = "num"; num.textContent = n;
+      const pct = document.createElement("small"); pct.textContent = respondents ? `${Math.round((n / respondents) * 100)}%` : "0%";
+      num.appendChild(pct);
+      const track = document.createElement("div"); track.className = "track";
+      const bar = document.createElement("div"); bar.className = "bar";
+      track.appendChild(bar);
+      li.append(nm, num, track);
+      requestAnimationFrame(() => { bar.style.width = respondents ? `${(n / respondents) * 100}%` : "0"; });
+      return li;
+    }));
+  }
+}
+
+async function loadResults() {
+  try {
+    const rows = await rpc("resultados");
+    const t = { pastel: {}, refri: {}, suco: {} };
+    let total = 0;
+    for (const r of rows || []) {
+      if (r.grupo === "total") total = Number(r.votos) || 0;
+      else if (t[r.grupo]) t[r.grupo][r.opcao] = Number(r.votos) || 0;
+    }
+    tallies = t; respondents = total; loaded = true;
+    renderResults();
+  } catch (e) {
+    $("#total").textContent = "Não foi possível carregar a contagem. Recarregue a página.";
+  }
+}
+
+function showResults() {
+  locked = true;
+  $("#vote").hidden = true;
+  $("#lede").textContent = "Seu voto já está registrado. Veja como a turma está votando.";
+  $("#results").hidden = false;
+  renderResults();
+  loadResults();
+  clearInterval(poll);
+  poll = setInterval(() => { if (!document.hidden) loadResults(); }, 15000);
+}
+
+async function send() {
+  if (locked) return;
+  if (!picks.pastel.size && !picks.refri.size && !picks.suco.size) {
+    msg(ERRORS.voto_vazio, "err"); return;
+  }
+  const input = $("#email");
+  const email = input.value.trim().toLowerCase();
+  if (!EMAIL_RE.test(email)) {
+    input.setAttribute("aria-invalid", "true"); input.focus();
+    msg(ERRORS.email_invalido, "err"); return;
+  }
+  input.removeAttribute("aria-invalid");
+
+  const btn = $("#send"); btn.disabled = true; msg("Enviando…");
+  try {
+    await rpc("votar", {
+      p_email: email,
+      p_pastel: [...picks.pastel],
+      p_refri: [...picks.refri][0] || null,
+      p_suco: [...picks.suco][0] || null,
+    });
+    try { localStorage.setItem(STORE, JSON.stringify({ pastel: [...picks.pastel], refri: [...picks.refri], suco: [...picks.suco] })); } catch (e) {}
+    showResults();
+    window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  } catch (e) {
+    btn.disabled = false;
+    const known = ERRORS[e.message];
+    if (e.message === "email_ja_votou" || e.message === "email_invalido") input.setAttribute("aria-invalid", "true");
+    msg(known || "Não foi possível enviar agora. Tente de novo em alguns segundos.", "err");
+  }
+}
+
+$("#send").addEventListener("click", send);
+$("#email").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); send(); } });
+
+// Quem já votou neste navegador volta direto para o placar.
+try {
+  const saved = JSON.parse(localStorage.getItem(STORE) || "null");
+  if (saved) {
+    for (const key of KEYS) (saved[key] || []).forEach((n) => { if (MENU[key].includes(n)) picks[key].add(n); });
+    showResults();
+  }
+} catch (e) {}
+</script>
+</body>
+</html>
